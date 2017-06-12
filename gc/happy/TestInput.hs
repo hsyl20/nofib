@@ -1,48 +1,53 @@
+{-# OPTIONS_GHC -w #-}
 module Parser ( parseModule, parseStmt, parseIdentifier, parseType,
-		parseHeader ) where
+                parseHeader ) where
 
 
 #include "HsVersions.h"
 
-import HsSyn
-import RdrHsSyn
-import HscTypes		( IsBootInterface, DeprecTxt )
-import Lexer
-import RdrName
-import TysWiredIn	( unitTyCon, unitDataCon, tupleTyCon, tupleCon, nilDataCon,
-			  listTyCon_RDR, parrTyCon_RDR, consDataCon_RDR )
-import Type		( funTyCon )
-import ForeignCall	( Safety(..), CExportSpec(..), CLabelString,
-			  CCallConv(..), CCallTarget(..), defaultCCallConv
-			)
-import OccName		( varName, dataName, tcClsName, tvName )
-import DataCon		( DataCon, dataConName )
-import SrcLoc		( Located(..), unLoc, getLoc, noLoc, combineSrcSpans,
-			  SrcSpan, combineLocs, srcLocFile, 
-			  mkSrcLoc, mkSrcSpan )
-import Module
-import StaticFlags	( opt_SccProfilingOn, opt_Hpc )
-import Type		( Kind, mkArrowKind, liftedTypeKind, unliftedTypeKind )
-import BasicTypes	( Boxity(..), Fixity(..), FixityDirection(..), IPName(..),
-			  Activation(..), defaultInlineSpec )
-import OrdList
+import GHC.IR.Haskell.Syntax
+import GHC.IR.Haskell.Parser.Syntax
+import GHC.Types                ( IsBootInterface, DeprecTxt )
+import GHC.IR.Haskell.Lexer
+import GHC.Data.RdrName
+import GHC.Builtin.Types        ( unitTyCon, unitDataCon, tupleTyCon, tupleCon
+                                , nilDataCon, listTyCon_RDR, parrTyCon_RDR
+                                , consDataCon_RDR )
+import GHC.Data.Type            ( funTyCon )
+import GHC.Data.ForeignCall     ( Safety(..), CExportSpec(..), CLabelString
+                                , CCallConv(..), CCallTarget(..)
+                                , defaultCCallConv)
+import GHC.Data.OccName         ( varName, dataName, tcClsName, tvName )
+import GHC.Data.DataConstructor ( DataCon, dataConName )
+import GHC.Data.SrcLoc          ( Located(..), unLoc, getLoc, noLoc
+                                , combineSrcSpans, SrcSpan, combineLocs
+                                , srcLocFile, mkSrcLoc, mkSrcSpan )
+import GHC.Data.Module
+import StaticFlags              ( opt_SccProfilingOn, opt_Hpc )
+import GHC.Data.Type            ( Kind, mkArrowKind, liftedTypeKind
+                                , unliftedTypeKind )
+import GHC.Data.BasicTypes      ( Boxity(..), Fixity(..), FixityDirection(..)
+                                , IPName(..), Activation(..), defaultInlineSpec)
+import GHC.Data.Tree.OrdList
 import HaddockParse
 import {-# SOURCE #-} HaddockLex hiding ( Token )
 import HaddockUtils
 
-import FastString
-import Maybes		( orElse )
-import Outputable
+import GHC.Data.FastString
+import GHC.Data.Maybe   ( orElse )
+import GHC.Utils.Outputable
 
 import Control.Monad    ( unless )
 import GHC.Exts
 import Data.Char
 import Control.Monad    ( mplus )
+import Control.Applicative(Applicative(..))
+import Control.Monad (ap)
 
--- parser produced by Happy Version 1.16
+-- parser produced by Happy Version 1.19.5
 
 data HappyAbsSyn 
-	= HappyTerminal (Located Token)
+	= HappyTerminal ((Located Token))
 	| HappyErrorToken Int
 	| HappyAbsSyn8 (Located RdrName)
 	| HappyAbsSyn9 (Located (HsModule RdrName))
@@ -70,9 +75,9 @@ data HappyAbsSyn
 	| HappyAbsSyn43 (Located NewOrData)
 	| HappyAbsSyn44 (Located (Maybe Kind))
 	| HappyAbsSyn45 (Located (LHsContext RdrName, 
-		       Located RdrName, 
-		       [LHsTyVarBndr RdrName],
-		       [LHsType RdrName]))
+                       Located RdrName, 
+                       [LHsTyVarBndr RdrName],
+                       [LHsType RdrName]))
 	| HappyAbsSyn46 (LDerivDecl RdrName)
 	| HappyAbsSyn47 (Located (OrdList (LHsDecl RdrName)))
 	| HappyAbsSyn57 (Located (HsLocalBinds RdrName))
@@ -137,6 +142,12 @@ data HappyAbsSyn
 	| HappyAbsSyn214 ((HaddockModInfo RdrName, Maybe (HsDoc RdrName)))
 	| HappyAbsSyn215 (Maybe (LHsDoc RdrName))
 
+{- to allow type-synonyms as our monads (likely
+ - with explicitly-specified bind and return)
+ - in Haskell98, it seems that with
+ - /type M a = .../, then /(HappyReduction M)/
+ - is not allowed.  But Happy is a
+ - code-generator that can just substitute it.
 type HappyReduction m = 
 	   Int 
 	-> ((Located Token))
@@ -144,6 +155,7 @@ type HappyReduction m =
 	-> [HappyState ((Located Token)) (HappyStk HappyAbsSyn -> m HappyAbsSyn)] 
 	-> HappyStk HappyAbsSyn 
 	-> m HappyAbsSyn
+-}
 
 action_0,
  action_1,
@@ -1124,7 +1136,13 @@ action_0,
  action_976,
  action_977,
  action_978,
- action_979 :: () => Int -> HappyReduction (P)
+ action_979 :: () => Int -> ({-HappyReduction (P) = -}
+	   Int 
+	-> ((Located Token))
+	-> HappyState ((Located Token)) (HappyStk HappyAbsSyn -> (P) HappyAbsSyn)
+	-> [HappyState ((Located Token)) (HappyStk HappyAbsSyn -> (P) HappyAbsSyn)] 
+	-> HappyStk HappyAbsSyn 
+	-> (P) HappyAbsSyn)
 
 happyReduce_5,
  happyReduce_6,
@@ -1667,7 +1685,13 @@ happyReduce_5,
  happyReduce_543,
  happyReduce_544,
  happyReduce_545,
- happyReduce_546 :: () => HappyReduction (P)
+ happyReduce_546 :: () => ({-HappyReduction (P) = -}
+	   Int 
+	-> ((Located Token))
+	-> HappyState ((Located Token)) (HappyStk HappyAbsSyn -> (P) HappyAbsSyn)
+	-> [HappyState ((Located Token)) (HappyStk HappyAbsSyn -> (P) HappyAbsSyn)] 
+	-> HappyStk HappyAbsSyn 
+	-> (P) HappyAbsSyn)
 
 action_0 (236) = happyReduce_15
 action_0 (326) = happyShift action_33
@@ -16178,7 +16202,7 @@ happyReduction_9 ((HappyAbsSyn13  happy_var_7) `HappyStk`
 	(HappyAbsSyn10  happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( fileSrcSpan >>= \ loc -> case happy_var_1 of { (opt, info, doc) -> 
-		   return (L loc (HsModule (Just happy_var_3) happy_var_5 (fst happy_var_7) (snd happy_var_7) happy_var_4 
+                   return (L loc (HsModule (Just happy_var_3) happy_var_5 (fst happy_var_7) (snd happy_var_7) happy_var_4 
                           opt info doc) )})
 	) (\r -> happyReturn (HappyAbsSyn9 r))
 
@@ -16188,7 +16212,7 @@ happyReduction_10 (_ `HappyStk`
 	_ `HappyStk`
 	happyRest) tk
 	 = happyThen (( fileSrcSpan >>= \ loc ->
-		   return (L loc (HsModule Nothing Nothing 
+                   return (L loc (HsModule Nothing Nothing 
                           (fst happy_var_2) (snd happy_var_2) Nothing Nothing emptyHaddockModInfo 
                           Nothing)))
 	) (\r -> happyReturn (HappyAbsSyn9 r))
@@ -16305,7 +16329,7 @@ happyReduction_25 ((HappyAbsSyn17  happy_var_7) `HappyStk`
 	(HappyAbsSyn10  happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( fileSrcSpan >>= \ loc -> case happy_var_1 of { (opt, info, doc) -> 
-		   return (L loc (HsModule (Just happy_var_3) happy_var_5 happy_var_7 [] happy_var_4 
+                   return (L loc (HsModule (Just happy_var_3) happy_var_5 happy_var_7 [] happy_var_4 
                    opt info doc))})
 	) (\r -> happyReturn (HappyAbsSyn9 r))
 
@@ -16314,7 +16338,7 @@ happyReduction_26 ((HappyAbsSyn17  happy_var_2) `HappyStk`
 	_ `HappyStk`
 	happyRest) tk
 	 = happyThen (( fileSrcSpan >>= \ loc ->
-		   return (L loc (HsModule Nothing Nothing happy_var_2 [] Nothing 
+                   return (L loc (HsModule Nothing Nothing happy_var_2 [] Nothing 
                    Nothing emptyHaddockModInfo Nothing)))
 	) (\r -> happyReturn (HappyAbsSyn9 r))
 
@@ -16504,8 +16528,8 @@ happyReduction_50 (HappyAbsSyn8  happy_var_2)
 	(HappyTerminal happy_var_1)
 	 =  HappyAbsSyn8
 		 (sL (comb2 happy_var_1 happy_var_2) 
-					     (setRdrNameSpace (unLoc happy_var_2) 
-							      tcClsName)
+                                             (setRdrNameSpace (unLoc happy_var_2) 
+                                                              tcClsName)
 	)
 happyReduction_50 _ _  = notHappyAtAll 
 
@@ -16723,8 +16747,8 @@ happyReduction_80 (HappyAbsSyn47  happy_var_3)
 	(HappyTerminal happy_var_1)
 	 =  HappyAbsSyn37
 		 (let (binds, sigs, ats, _) = cvBindsAndSigs (unLoc happy_var_3)
-	      in 
-	      unitOL (L (comb3 happy_var_1 happy_var_2 happy_var_3) (InstD (InstDecl happy_var_2 binds sigs ats)))
+              in 
+              unitOL (L (comb3 happy_var_1 happy_var_2 happy_var_3) (InstD (InstDecl happy_var_2 binds sigs ats)))
 	)
 happyReduction_80 _ _ _  = notHappyAtAll 
 
@@ -16791,8 +16815,8 @@ happyReduce_88 = happySpecReduce_1  38 happyReduction_88
 happyReduction_88 (HappyTerminal happy_var_1)
 	 =  HappyAbsSyn37
 		 (unitOL (sL (comb2 happy_var_1 happy_var_1) $ SpliceD (SpliceDecl $
-							sL (getLoc happy_var_1) $ HsVar (mkUnqual varName (getTH_ID_SPLICE happy_var_1))
-						  ))
+                                                        sL (getLoc happy_var_1) $ HsVar (mkUnqual varName (getTH_ID_SPLICE happy_var_1))
+                                                  ))
 	)
 happyReduction_88 _  = notHappyAtAll 
 
@@ -16803,13 +16827,13 @@ happyReduction_89 ((HappyAbsSyn47  happy_var_4) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let { (binds, sigs, ats, docs)           = 
-			        cvBindsAndSigs (unLoc happy_var_4)
-		            ; (ctxt, tc, tvs, tparms) = unLoc happy_var_2}
+                                cvBindsAndSigs (unLoc happy_var_4)
+                            ; (ctxt, tc, tvs, tparms) = unLoc happy_var_2}
                       ; checkTyVars tparms      -- only type vars allowed
-		      ; checkKindSigs ats
-		      ; return $ L (comb4 happy_var_1 happy_var_2 happy_var_3 happy_var_4) 
-				   (mkClassDecl (ctxt, tc, tvs) 
-					        (unLoc happy_var_3) sigs binds ats docs) })
+                      ; checkKindSigs ats
+                      ; return $ L (comb4 happy_var_1 happy_var_2 happy_var_3 happy_var_4) 
+                                   (mkClassDecl (ctxt, tc, tvs) 
+                                                (unLoc happy_var_3) sigs binds ats docs) })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_90 = happyMonadReduce 4 40 happyReduction_90
@@ -16819,8 +16843,8 @@ happyReduction_90 ((HappyAbsSyn75  happy_var_4) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { (tc, tvs, _) <- checkSynHdr happy_var_2 False
-		      ; return (L (comb2 happy_var_1 happy_var_4) 
-				  (TySynonym tc tvs Nothing happy_var_4))
+                      ; return (L (comb2 happy_var_1 happy_var_4) 
+                                  (TySynonym tc tvs Nothing happy_var_4))
                       })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
@@ -16831,9 +16855,9 @@ happyReduction_91 ((HappyAbsSyn44  happy_var_4) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { (tc, tvs, _) <- checkSynHdr happy_var_3 False
-		      ; return (L (comb3 happy_var_1 happy_var_3 happy_var_4) 
-				  (TyFamily TypeFamily tc tvs (unLoc happy_var_4)))
-		      })
+                      ; return (L (comb3 happy_var_1 happy_var_3 happy_var_4) 
+                                  (TyFamily TypeFamily tc tvs (unLoc happy_var_4)))
+                      })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_92 = happyMonadReduce 5 40 happyReduction_92
@@ -16844,8 +16868,8 @@ happyReduction_92 ((HappyAbsSyn75  happy_var_5) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { (tc, tvs, typats) <- checkSynHdr happy_var_3 True
-		      ; return (L (comb2 happy_var_1 happy_var_5) 
-				  (TySynonym tc tvs (Just typats) happy_var_5)) 
+                      ; return (L (comb2 happy_var_1 happy_var_5) 
+                                  (TySynonym tc tvs (Just typats) happy_var_5)) 
                       })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
@@ -16857,12 +16881,12 @@ happyReduction_93 ((HappyAbsSyn113  happy_var_4) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let {(ctxt, tc, tvs, tparms) = unLoc happy_var_2}
                       ; checkTyVars tparms    -- no type pattern
-		      ; return $
-			  L (comb4 happy_var_1 happy_var_2 happy_var_3 happy_var_4)
-			           -- We need the location on tycl_hdr in case 
-				   -- constrs and deriving are both empty
-			    (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Nothing) 
-			       Nothing (reverse (unLoc happy_var_3)) (unLoc happy_var_4)) })
+                      ; return $
+                          L (comb4 happy_var_1 happy_var_2 happy_var_3 happy_var_4)
+                                   -- We need the location on tycl_hdr in case 
+                                   -- constrs and deriving are both empty
+                            (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Nothing) 
+                               Nothing (reverse (unLoc happy_var_3)) (unLoc happy_var_4)) })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_94 = happyMonadReduce 6 40 happyReduction_94
@@ -16875,10 +16899,10 @@ happyReduction_94 ((HappyAbsSyn113  happy_var_6) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let {(ctxt, tc, tvs, tparms) = unLoc happy_var_2}
                       ; checkTyVars tparms    -- can have type pats
-		      ; return $
-			  L (comb4 happy_var_1 happy_var_2 happy_var_4 happy_var_5)
-			    (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Nothing) 
-			      (unLoc happy_var_3) (reverse (unLoc happy_var_5)) (unLoc happy_var_6)) })
+                      ; return $
+                          L (comb4 happy_var_1 happy_var_2 happy_var_4 happy_var_5)
+                            (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Nothing) 
+                              (unLoc happy_var_3) (reverse (unLoc happy_var_5)) (unLoc happy_var_6)) })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_95 = happyMonadReduce 4 40 happyReduction_95
@@ -16889,13 +16913,13 @@ happyReduction_95 ((HappyAbsSyn44  happy_var_4) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let {(ctxt, tc, tvs, tparms) = unLoc happy_var_3}
                       ; checkTyVars tparms            -- no type pattern
-		      ; unless (null (unLoc ctxt)) $  -- and no context
-			  parseError (getLoc ctxt) 
-			    "A family declaration cannot have a context"
-		      ; return $
-			  L (comb3 happy_var_1 happy_var_2 happy_var_4)
-			    (TyFamily (DataFamily (unLoc happy_var_1)) tc tvs 
-				      (unLoc happy_var_4)) })
+                      ; unless (null (unLoc ctxt)) $  -- and no context
+                          parseError (getLoc ctxt) 
+                            "A family declaration cannot have a context"
+                      ; return $
+                          L (comb3 happy_var_1 happy_var_2 happy_var_4)
+                            (TyFamily (DataFamily (unLoc happy_var_1)) tc tvs 
+                                      (unLoc happy_var_4)) })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_96 = happyMonadReduce 5 40 happyReduction_96
@@ -16907,12 +16931,12 @@ happyReduction_96 ((HappyAbsSyn113  happy_var_5) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let {(ctxt, tc, tvs, tparms) = unLoc happy_var_3}
                                              -- can have type pats
-		      ; return $
-			  L (comb4 happy_var_1 happy_var_3 happy_var_4 happy_var_5)
-			           -- We need the location on tycl_hdr in case 
-				   -- constrs and deriving are both empty
-			    (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Just tparms) 
-			      Nothing (reverse (unLoc happy_var_4)) (unLoc happy_var_5)) })
+                      ; return $
+                          L (comb4 happy_var_1 happy_var_3 happy_var_4 happy_var_5)
+                                   -- We need the location on tycl_hdr in case 
+                                   -- constrs and deriving are both empty
+                            (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Just tparms) 
+                              Nothing (reverse (unLoc happy_var_4)) (unLoc happy_var_5)) })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_97 = happyMonadReduce 7 40 happyReduction_97
@@ -16926,10 +16950,10 @@ happyReduction_97 ((HappyAbsSyn113  happy_var_7) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let {(ctxt, tc, tvs, tparms) = unLoc happy_var_3}
                                              -- can have type pats
-		      ; return $
-			  L (comb4 happy_var_1 happy_var_3 happy_var_6 happy_var_7)
-			    (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Just tparms) 
-			       (unLoc happy_var_4) (reverse (unLoc happy_var_6)) (unLoc happy_var_7)) })
+                      ; return $
+                          L (comb4 happy_var_1 happy_var_3 happy_var_6 happy_var_7)
+                            (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Just tparms) 
+                               (unLoc happy_var_4) (reverse (unLoc happy_var_6)) (unLoc happy_var_7)) })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_98 = happyMonadReduce 3 41 happyReduction_98
@@ -16938,9 +16962,9 @@ happyReduction_98 ((HappyAbsSyn44  happy_var_3) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { (tc, tvs, _) <- checkSynHdr happy_var_2 False
-		      ; return (L (comb3 happy_var_1 happy_var_2 happy_var_3) 
-				  (TyFamily TypeFamily tc tvs (unLoc happy_var_3)))
-		      })
+                      ; return (L (comb3 happy_var_1 happy_var_2 happy_var_3) 
+                                  (TyFamily TypeFamily tc tvs (unLoc happy_var_3)))
+                      })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_99 = happyMonadReduce 4 41 happyReduction_99
@@ -16950,8 +16974,8 @@ happyReduction_99 ((HappyAbsSyn75  happy_var_4) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { (tc, tvs, typats) <- checkSynHdr happy_var_2 True
-		      ; return (L (comb2 happy_var_1 happy_var_4) 
-				  (TySynonym tc tvs (Just typats) happy_var_4)) 
+                      ; return (L (comb2 happy_var_1 happy_var_4) 
+                                  (TySynonym tc tvs (Just typats) happy_var_4)) 
                       })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
@@ -16962,13 +16986,13 @@ happyReduction_100 ((HappyAbsSyn44  happy_var_3) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let {(ctxt, tc, tvs, tparms) = unLoc happy_var_2}
                       ; checkTyVars tparms            -- no type pattern
-		      ; unless (null (unLoc ctxt)) $  -- and no context
-			  parseError (getLoc ctxt) 
-			    "A family declaration cannot have a context"
-		      ; return $
-			  L (comb3 happy_var_1 happy_var_2 happy_var_3)
-			    (TyFamily (DataFamily (unLoc happy_var_1)) tc tvs
-				      (unLoc happy_var_3)) 
+                      ; unless (null (unLoc ctxt)) $  -- and no context
+                          parseError (getLoc ctxt) 
+                            "A family declaration cannot have a context"
+                      ; return $
+                          L (comb3 happy_var_1 happy_var_2 happy_var_3)
+                            (TyFamily (DataFamily (unLoc happy_var_1)) tc tvs
+                                      (unLoc happy_var_3)) 
                       })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
@@ -16979,8 +17003,8 @@ happyReduction_101 ((HappyAbsSyn75  happy_var_4) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { (tc, tvs, typats) <- checkSynHdr happy_var_2 True
-		      ; return (L (comb2 happy_var_1 happy_var_4) 
-				  (TySynonym tc tvs (Just typats) happy_var_4)) 
+                      ; return (L (comb2 happy_var_1 happy_var_4) 
+                                  (TySynonym tc tvs (Just typats) happy_var_4)) 
                       })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
@@ -16992,12 +17016,12 @@ happyReduction_102 ((HappyAbsSyn113  happy_var_4) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let {(ctxt, tc, tvs, tparms) = unLoc happy_var_2}
                                              -- can have type pats
-		      ; return $
-			  L (comb4 happy_var_1 happy_var_2 happy_var_3 happy_var_4)
-			           -- We need the location on tycl_hdr in case 
-				   -- constrs and deriving are both empty
-			    (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Just tparms) 
-			      Nothing (reverse (unLoc happy_var_3)) (unLoc happy_var_4)) })
+                      ; return $
+                          L (comb4 happy_var_1 happy_var_2 happy_var_3 happy_var_4)
+                                   -- We need the location on tycl_hdr in case 
+                                   -- constrs and deriving are both empty
+                            (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Just tparms) 
+                              Nothing (reverse (unLoc happy_var_3)) (unLoc happy_var_4)) })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_103 = happyMonadReduce 6 42 happyReduction_103
@@ -17010,10 +17034,10 @@ happyReduction_103 ((HappyAbsSyn113  happy_var_6) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let {(ctxt, tc, tvs, tparms) = unLoc happy_var_2}
                                              -- can have type pats
-		      ; return $
-			  L (comb4 happy_var_1 happy_var_2 happy_var_5 happy_var_6)
-			    (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Just tparms) 
-			     (unLoc happy_var_3) (reverse (unLoc happy_var_5)) (unLoc happy_var_6)) })
+                      ; return $
+                          L (comb4 happy_var_1 happy_var_2 happy_var_5 happy_var_6)
+                            (mkTyData (unLoc happy_var_1) (ctxt, tc, tvs, Just tparms) 
+                             (unLoc happy_var_3) (reverse (unLoc happy_var_5)) (unLoc happy_var_6)) })
 	) (\r -> happyReturn (HappyAbsSyn39 r))
 
 happyReduce_104 = happySpecReduce_1  43 happyReduction_104
@@ -17337,8 +17361,8 @@ happyReduction_146 ((HappyAbsSyn121  happy_var_6) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn60
 		 (sL (comb2 happy_var_1 happy_var_6) $ RuleD (HsRule (getSTRING happy_var_1) 
-				  (happy_var_2 `orElse` AlwaysActive) 
-				  happy_var_3 happy_var_4 placeHolderNames happy_var_6 placeHolderNames)
+                                  (happy_var_2 `orElse` AlwaysActive) 
+                                  happy_var_3 happy_var_4 placeHolderNames happy_var_6 placeHolderNames)
 	) `HappyStk` happyRest
 
 happyReduce_147 = happySpecReduce_0  61 happyReduction_147
@@ -17453,7 +17477,7 @@ happyReduction_161 (HappyTerminal happy_var_2)
 	(HappyAbsSyn99  happy_var_1)
 	 =  HappyAbsSyn37
 		 (toOL [ sL (comb2 happy_var_1 happy_var_2) $ DeprecD (Deprecation n (getSTRING happy_var_2)) 
-		       | n <- unLoc happy_var_1 ]
+                       | n <- unLoc happy_var_1 ]
 	)
 happyReduction_161 _ _  = notHappyAtAll 
 
@@ -17472,7 +17496,7 @@ happyReduction_163 ((HappyAbsSyn71  happy_var_3) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { d <- mkImport happy_var_2 (PlaySafe False) (unLoc happy_var_3);
-			return (sL (comb2 happy_var_1 happy_var_3) d) })
+                        return (sL (comb2 happy_var_1 happy_var_3) d) })
 	) (\r -> happyReturn (HappyAbsSyn60 r))
 
 happyReduce_164 = happyMonadReduce 3 68 happyReduction_164
@@ -17756,7 +17780,7 @@ happyReduction_200 ((HappyAbsSyn75  happy_var_3) `HappyStk`
 	(HappyAbsSyn75  happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( checkContext
-					     (sL (comb2 happy_var_1 happy_var_3) $ HsPredTy (HsEqualP happy_var_1 happy_var_3)))
+                                             (sL (comb2 happy_var_1 happy_var_3) $ HsPredTy (HsEqualP happy_var_1 happy_var_3)))
 	) (\r -> happyReturn (HappyAbsSyn84 r))
 
 happyReduce_201 = happyMonadReduce 1 84 happyReduction_201
@@ -18022,7 +18046,7 @@ happyReduction_233 ((HappyTerminal happy_var_5) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn95
 		 (sL (comb2 happy_var_1 happy_var_5) (KindedTyVar (unLoc happy_var_2) 
-							  (unLoc happy_var_4))
+                                                          (unLoc happy_var_4))
 	) `HappyStk` happyRest
 
 happyReduce_234 = happySpecReduce_0  96 happyReduction_234
@@ -18060,7 +18084,7 @@ happyReduction_238 (HappyAbsSyn99  happy_var_3)
 	(HappyAbsSyn99  happy_var_1)
 	 =  HappyAbsSyn98
 		 (L (comb3 happy_var_1 happy_var_2 happy_var_3)
-					   (reverse (unLoc happy_var_1), reverse (unLoc happy_var_3))
+                                           (reverse (unLoc happy_var_1), reverse (unLoc happy_var_3))
 	)
 happyReduction_238 _ _ _  = notHappyAtAll 
 
@@ -18173,7 +18197,7 @@ happyReduction_252 (HappyAbsSyn75  happy_var_3)
 	(HappyAbsSyn109  happy_var_1)
 	 =  HappyAbsSyn104
 		 (let (con,details) = unLoc happy_var_1 in 
-		  sL (comb2 happy_var_1 happy_var_3) (ConDecl con Implicit [] (noLoc []) details (ResTyGADT happy_var_3) Nothing)
+                  sL (comb2 happy_var_1 happy_var_3) (ConDecl con Implicit [] (noLoc []) details (ResTyGADT happy_var_3) Nothing)
 	)
 happyReduction_252 _ _ _  = notHappyAtAll 
 
@@ -18219,7 +18243,7 @@ happyReduction_257 ((HappyAbsSyn215  happy_var_6) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn104
 		 (let (con,details) = unLoc happy_var_5 in 
-		  L (comb4 happy_var_2 happy_var_3 happy_var_4 happy_var_5) (ConDecl con Explicit (unLoc happy_var_2) happy_var_3 details ResTyH98 (happy_var_1 `mplus` happy_var_6))
+                  L (comb4 happy_var_2 happy_var_3 happy_var_4 happy_var_5) (ConDecl con Explicit (unLoc happy_var_2) happy_var_3 details ResTyH98 (happy_var_1 `mplus` happy_var_6))
 	) `HappyStk` happyRest
 
 happyReduce_258 = happyReduce 4 107 happyReduction_258
@@ -18230,7 +18254,7 @@ happyReduction_258 ((HappyAbsSyn215  happy_var_4) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn104
 		 (let (con,details) = unLoc happy_var_3 in 
-		  L (comb2 happy_var_2 happy_var_3) (ConDecl con Explicit (unLoc happy_var_2) (noLoc []) details ResTyH98 (happy_var_1 `mplus` happy_var_4))
+                  L (comb2 happy_var_2 happy_var_3) (ConDecl con Explicit (unLoc happy_var_2) (noLoc []) details ResTyH98 (happy_var_1 `mplus` happy_var_4))
 	) `HappyStk` happyRest
 
 happyReduce_259 = happySpecReduce_3  108 happyReduction_259
@@ -18335,8 +18359,8 @@ happyReduction_271 ((HappyAbsSyn8  happy_var_2) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { let { L loc tv = happy_var_2 }
-				      ; p <- checkInstType (L loc (HsTyVar tv))
-				      ; return (sL (comb2 happy_var_1 happy_var_2) (Just [p])) })
+                                      ; p <- checkInstType (L loc (HsTyVar tv))
+                                      ; return (sL (comb2 happy_var_1 happy_var_2) (Just [p])) })
 	) (\r -> happyReturn (HappyAbsSyn113 r))
 
 happyReduce_272 = happySpecReduce_3  113 happyReduction_272
@@ -18406,9 +18430,9 @@ happyReduction_280 ((HappyAbsSyn117  happy_var_3) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { pat <- checkPattern happy_var_2;
-					        return (sL (comb2 happy_var_1 happy_var_3) $ unitOL $ sL (comb2 happy_var_1 happy_var_3) $ ValD ( 
-							PatBind (sL (comb2 happy_var_1 happy_var_3) $ BangPat pat) (unLoc happy_var_3)
-								placeHolderType placeHolderNames)) })
+                                                return (sL (comb2 happy_var_1 happy_var_3) $ unitOL $ sL (comb2 happy_var_1 happy_var_3) $ ValD ( 
+                                                        PatBind (sL (comb2 happy_var_1 happy_var_3) $ BangPat pat) (unLoc happy_var_3)
+                                                                placeHolderType placeHolderNames)) })
 	) (\r -> happyReturn (HappyAbsSyn47 r))
 
 happyReduce_281 = happyMonadReduce 3 116 happyReduction_281
@@ -18417,7 +18441,7 @@ happyReduction_281 ((HappyAbsSyn117  happy_var_3) `HappyStk`
 	(HappyAbsSyn121  happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { r <- checkValDef happy_var_1 happy_var_2 happy_var_3;
-						return (sL (comb2 happy_var_1 happy_var_3) $ unitOL (sL (comb2 happy_var_1 happy_var_3) $ ValD r)) })
+                                                return (sL (comb2 happy_var_1 happy_var_3) $ unitOL (sL (comb2 happy_var_1 happy_var_3) $ ValD r)) })
 	) (\r -> happyReturn (HappyAbsSyn47 r))
 
 happyReduce_282 = happySpecReduce_1  116 happyReduction_282
@@ -18475,7 +18499,7 @@ happyReduction_288 ((HappyAbsSyn75  happy_var_3) `HappyStk`
 	(HappyAbsSyn121  happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do s <- checkValSig happy_var_1 happy_var_3; 
-				      return (sL (comb2 happy_var_1 happy_var_3) $ unitOL (sL (comb2 happy_var_1 happy_var_3) $ SigD s)))
+                                      return (sL (comb2 happy_var_1 happy_var_3) $ unitOL (sL (comb2 happy_var_1 happy_var_3) $ SigD s)))
 	) (\r -> happyReturn (HappyAbsSyn47 r))
 
 happyReduce_289 = happyReduce 5 120 happyReduction_289
@@ -18495,7 +18519,7 @@ happyReduction_290 (HappyAbsSyn36  happy_var_3)
 	(HappyAbsSyn35  happy_var_1)
 	 =  HappyAbsSyn47
 		 (sL (comb2 happy_var_1 happy_var_3) $ toOL [ sL (comb2 happy_var_1 happy_var_3) $ SigD (FixSig (FixitySig n (Fixity happy_var_2 (unLoc happy_var_1))))
-					     | n <- unLoc happy_var_3 ]
+                                             | n <- unLoc happy_var_3 ]
 	)
 happyReduction_290 _ _ _  = notHappyAtAll 
 
@@ -18518,7 +18542,7 @@ happyReduction_292 ((HappyTerminal happy_var_5) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn47
 		 (sL (comb2 happy_var_1 happy_var_5) $ toOL [ sL (comb2 happy_var_1 happy_var_5) $ SigD (SpecSig happy_var_2 t defaultInlineSpec) 
-					    | t <- happy_var_4]
+                                            | t <- happy_var_4]
 	) `HappyStk` happyRest
 
 happyReduce_293 = happyReduce 6 120 happyReduction_293
@@ -18531,7 +18555,7 @@ happyReduction_293 ((HappyTerminal happy_var_6) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn47
 		 (sL (comb2 happy_var_1 happy_var_6) $ toOL [ sL (comb2 happy_var_1 happy_var_6) $ SigD (SpecSig happy_var_3 t (mkInlineSpec happy_var_2 (getSPEC_INLINE happy_var_1)))
-					    | t <- happy_var_5]
+                                            | t <- happy_var_5]
 	) `HappyStk` happyRest
 
 happyReduce_294 = happyReduce 4 120 happyReduction_294
@@ -18622,8 +18646,8 @@ happyReduction_303 ((HappyAbsSyn121  happy_var_6) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn121
 		 (sL (comb2 happy_var_1 happy_var_6) $ HsLam (mkMatchGroup [sL (comb2 happy_var_1 happy_var_6) $ Match (happy_var_2:happy_var_3) happy_var_4
-							   	(unguardedGRHSs happy_var_6)
-							    ])
+                                                                (unguardedGRHSs happy_var_6)
+                                                            ])
 	) `HappyStk` happyRest
 
 happyReduce_304 = happyReduce 4 123 happyReduction_304
@@ -18671,8 +18695,8 @@ happyReduction_308 ((HappyAbsSyn138  happy_var_2) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( let loc = comb2 happy_var_1 happy_var_2 in
-					   checkDo loc (unLoc happy_var_2)  >>= \ (stmts,body) ->
-					   return (L loc (mkHsDo DoExpr stmts body)))
+                                           checkDo loc (unLoc happy_var_2)  >>= \ (stmts,body) ->
+                                           return (L loc (mkHsDo DoExpr stmts body)))
 	) (\r -> happyReturn (HappyAbsSyn121 r))
 
 happyReduce_309 = happyMonadReduce 2 123 happyReduction_309
@@ -18680,8 +18704,8 @@ happyReduction_309 ((HappyAbsSyn138  happy_var_2) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( let loc = comb2 happy_var_1 happy_var_2 in
-					   checkDo loc (unLoc happy_var_2)  >>= \ (stmts,body) ->
-					   return (L loc (mkHsDo (MDoExpr noPostTcTable) stmts body)))
+                                           checkDo loc (unLoc happy_var_2)  >>= \ (stmts,body) ->
+                                           return (L loc (mkHsDo (MDoExpr noPostTcTable) stmts body)))
 	) (\r -> happyReturn (HappyAbsSyn121 r))
 
 happyReduce_310 = happySpecReduce_2  123 happyReduction_310
@@ -18689,8 +18713,8 @@ happyReduction_310 (HappyAbsSyn121  happy_var_2)
 	(HappyAbsSyn124  happy_var_1)
 	 =  HappyAbsSyn121
 		 (sL (comb2 happy_var_1 happy_var_2) $ if opt_SccProfilingOn
-							then HsSCC (unLoc happy_var_1) happy_var_2
-							else HsPar happy_var_2
+                                                        then HsSCC (unLoc happy_var_1) happy_var_2
+                                                        else HsPar happy_var_2
 	)
 happyReduction_310 _ _  = notHappyAtAll 
 
@@ -18699,8 +18723,8 @@ happyReduction_311 (HappyAbsSyn121  happy_var_2)
 	(HappyAbsSyn125  happy_var_1)
 	 =  HappyAbsSyn121
 		 (sL (comb2 happy_var_1 happy_var_2) $ if opt_Hpc
-							then HsTickPragma (unLoc happy_var_1) happy_var_2
-							else HsPar happy_var_2
+                                                        then HsTickPragma (unLoc happy_var_1) happy_var_2
+                                                        else HsPar happy_var_2
 	)
 happyReduction_311 _ _  = notHappyAtAll 
 
@@ -18711,8 +18735,8 @@ happyReduction_312 ((HappyAbsSyn121  happy_var_4) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( checkPattern happy_var_2 >>= \ p -> 
-			   return (sL (comb2 happy_var_1 happy_var_4) $ HsProc p (sL (comb2 happy_var_1 happy_var_4) $ HsCmdTop happy_var_4 [] 
-						   placeHolderType undefined)))
+                           return (sL (comb2 happy_var_1 happy_var_4) $ HsProc p (sL (comb2 happy_var_1 happy_var_4) $ HsCmdTop happy_var_4 [] 
+                                                   placeHolderType undefined)))
 	) (\r -> happyReturn (HappyAbsSyn121 r))
 
 happyReduce_313 = happyReduce 4 123 happyReduction_313
@@ -18763,13 +18787,13 @@ happyReduction_317 ((HappyTerminal happy_var_10) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn125
 		 (sL (comb2 happy_var_1 happy_var_10) $ (getSTRING happy_var_2
-						       ,( fromInteger $ getINTEGER happy_var_3
- 							, fromInteger $ getINTEGER happy_var_5
-							)
-                         			       ,( fromInteger $ getINTEGER happy_var_7
- 							, fromInteger $ getINTEGER happy_var_9
-							)
-						       )
+                                                       ,( fromInteger $ getINTEGER happy_var_3
+                                                        , fromInteger $ getINTEGER happy_var_5
+                                                        )
+                                                       ,( fromInteger $ getINTEGER happy_var_7
+                                                        , fromInteger $ getINTEGER happy_var_9
+                                                        )
+                                                       )
 	) `HappyStk` happyRest
 
 happyReduce_318 = happySpecReduce_2  126 happyReduction_318
@@ -18818,8 +18842,8 @@ happyReduction_323 ((HappyTerminal happy_var_4) `HappyStk`
 	(HappyAbsSyn121  happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( do { r <- mkRecConstrOrUpdate happy_var_1 (comb2 happy_var_2 happy_var_4) 
-							happy_var_3;
-				        return (sL (comb2 happy_var_1 happy_var_4) r) })
+                                                        happy_var_3;
+                                        return (sL (comb2 happy_var_1 happy_var_4) r) })
 	) (\r -> happyReturn (HappyAbsSyn121 r))
 
 happyReduce_324 = happySpecReduce_1  128 happyReduction_324
@@ -18837,7 +18861,7 @@ happyReduction_325 ((HappyTerminal happy_var_4) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn121
 		 (sL (comb2 happy_var_1 happy_var_4) $ HsApp (sL (getLoc happy_var_1) (HsVar (unLoc happy_var_1)))
-						     (sL (getLoc happy_var_3) (HsType happy_var_3))
+                                                     (sL (getLoc happy_var_3) (HsType happy_var_3))
 	) `HappyStk` happyRest
 
 happyReduce_326 = happySpecReduce_1  129 happyReduction_326
@@ -18953,8 +18977,8 @@ happyReduce_339 = happySpecReduce_1  129 happyReduction_339
 happyReduction_339 (HappyTerminal happy_var_1)
 	 =  HappyAbsSyn121
 		 (sL (getLoc happy_var_1) $ HsSpliceE (mkHsSplice 
-					(sL (getLoc happy_var_1) $ HsVar (mkUnqual varName 
-							(getTH_ID_SPLICE happy_var_1))))
+                                        (sL (getLoc happy_var_1) $ HsVar (mkUnqual varName 
+                                                        (getTH_ID_SPLICE happy_var_1))))
 	)
 happyReduction_339 _  = notHappyAtAll 
 
@@ -19023,7 +19047,7 @@ happyReduction_347 ((HappyTerminal happy_var_3) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( checkPattern happy_var_2 >>= \p ->
-					   return (sL (comb2 happy_var_1 happy_var_3) $ HsBracket (PatBr p)))
+                                           return (sL (comb2 happy_var_1 happy_var_3) $ HsBracket (PatBr p)))
 	) (\r -> happyReturn (HappyAbsSyn121 r))
 
 happyReduce_348 = happySpecReduce_3  129 happyReduction_348
@@ -19208,11 +19232,11 @@ happyReduce_370 = happySpecReduce_1  138 happyReduction_370
 happyReduction_370 (HappyAbsSyn139  happy_var_1)
 	 =  HappyAbsSyn138
 		 (case unLoc happy_var_1 of
-					    [qs] -> sL (getLoc happy_var_1) qs
-					    qss  -> sL (getLoc happy_var_1) [sL (getLoc happy_var_1) (ParStmt stmtss)]
-						 where
-						    stmtss = [ (reverse qs, undefined) 
-						    	     | qs <- qss ]
+                                            [qs] -> sL (getLoc happy_var_1) qs
+                                            qss  -> sL (getLoc happy_var_1) [sL (getLoc happy_var_1) (ParStmt stmtss)]
+                                                 where
+                                                    stmtss = [ (reverse qs, undefined) 
+                                                             | qs <- qss ]
 	)
 happyReduction_370 _  = notHappyAtAll 
 
@@ -19265,7 +19289,7 @@ happyReduce_377 = happySpecReduce_1  141 happyReduction_377
 happyReduction_377 (HappyAbsSyn137  happy_var_1)
 	 =  HappyAbsSyn121
 		 (sL (getLoc happy_var_1) $ ExplicitPArr placeHolderType 
-						       (reverse (unLoc happy_var_1))
+                                                       (reverse (unLoc happy_var_1))
 	)
 happyReduction_377 _  = notHappyAtAll 
 
@@ -19527,7 +19551,7 @@ happyReduction_411 ((HappyAbsSyn121  happy_var_3) `HappyStk`
 	(HappyAbsSyn121  happy_var_1) `HappyStk`
 	happyRest) tk
 	 = happyThen (( checkPattern happy_var_3 >>= \p ->
-					   return (sL (comb2 happy_var_1 happy_var_3) $ mkBindStmt p happy_var_1))
+                                           return (sL (comb2 happy_var_1 happy_var_3) $ mkBindStmt p happy_var_1))
 	) (\r -> happyReturn (HappyAbsSyn157 r))
 
 happyReduce_412 = happySpecReduce_2  157 happyReduction_412
@@ -20438,9 +20462,9 @@ happyReduce_534 = happySpecReduce_1  207 happyReduction_534
 happyReduction_534 (HappyTerminal happy_var_1)
 	 =  HappyAbsSyn207
 		 (sL (getLoc happy_var_1) $ let (mod,c) = getQCONID happy_var_1 in
-				  mkModuleNameFS
-				   (mkFastString
-				     (unpackFS mod ++ '.':unpackFS c))
+                                  mkModuleNameFS
+                                   (mkFastString
+                                     (unpackFS mod ++ '.':unpackFS c))
 	)
 happyReduction_534 _  = notHappyAtAll 
 
@@ -20670,7 +20694,8 @@ happyNewToken action sts stk
 	_ -> happyError' tk
 	})
 
-happyError_ tk = happyError' tk
+happyError_ 340 tk = happyError' tk
+happyError_ _ tk = happyError' tk
 
 happyThen :: () => P a -> (a -> P b) -> P b
 happyThen = (>>=)
@@ -20679,7 +20704,7 @@ happyReturn = (return)
 happyThen1 = happyThen
 happyReturn1 :: () => a -> P a
 happyReturn1 = happyReturn
-happyError' :: () => (Located Token) -> P a
+happyError' :: () => ((Located Token)) -> P a
 happyError' tk = (\token -> happyError) tk
 
 parseModule = happySomeParser where
@@ -20703,27 +20728,27 @@ happySeq = happyDontSeq
 happyError :: P a
 happyError = srcParseFail
 
-getVARID   	(L _ (ITvarid    x)) = x
-getCONID   	(L _ (ITconid    x)) = x
-getVARSYM  	(L _ (ITvarsym   x)) = x
-getCONSYM  	(L _ (ITconsym   x)) = x
-getQVARID  	(L _ (ITqvarid   x)) = x
-getQCONID  	(L _ (ITqconid   x)) = x
-getQVARSYM 	(L _ (ITqvarsym  x)) = x
-getQCONSYM 	(L _ (ITqconsym  x)) = x
+getVARID        (L _ (ITvarid    x)) = x
+getCONID        (L _ (ITconid    x)) = x
+getVARSYM       (L _ (ITvarsym   x)) = x
+getCONSYM       (L _ (ITconsym   x)) = x
+getQVARID       (L _ (ITqvarid   x)) = x
+getQCONID       (L _ (ITqconid   x)) = x
+getQVARSYM      (L _ (ITqvarsym  x)) = x
+getQCONSYM      (L _ (ITqconsym  x)) = x
 getIPDUPVARID   (L _ (ITdupipvarid   x)) = x
-getCHAR		(L _ (ITchar     x)) = x
-getSTRING	(L _ (ITstring   x)) = x
-getINTEGER	(L _ (ITinteger  x)) = x
-getRATIONAL	(L _ (ITrational x)) = x
-getPRIMCHAR	(L _ (ITprimchar   x)) = x
-getPRIMSTRING	(L _ (ITprimstring x)) = x
-getPRIMINTEGER	(L _ (ITprimint    x)) = x
-getPRIMFLOAT	(L _ (ITprimfloat  x)) = x
-getPRIMDOUBLE	(L _ (ITprimdouble x)) = x
+getCHAR         (L _ (ITchar     x)) = x
+getSTRING       (L _ (ITstring   x)) = x
+getINTEGER      (L _ (ITinteger  x)) = x
+getRATIONAL     (L _ (ITrational x)) = x
+getPRIMCHAR     (L _ (ITprimchar   x)) = x
+getPRIMSTRING   (L _ (ITprimstring x)) = x
+getPRIMINTEGER  (L _ (ITprimint    x)) = x
+getPRIMFLOAT    (L _ (ITprimfloat  x)) = x
+getPRIMDOUBLE   (L _ (ITprimdouble x)) = x
 getTH_ID_SPLICE (L _ (ITidEscape x)) = x
-getINLINE	(L _ (ITinline_prag b)) = b
-getSPEC_INLINE	(L _ (ITspec_inline_prag b)) = b
+getINLINE       (L _ (ITinline_prag b)) = b
+getSPEC_INLINE  (L _ (ITspec_inline_prag b)) = b
 
 getDOCNEXT (L _ (ITdocCommentNext x)) = x
 getDOCPREV (L _ (ITdocCommentPrev x)) = x
@@ -20740,7 +20765,7 @@ comb3 a b c = combineSrcSpans (getLoc a) (combineSrcSpans (getLoc b) (getLoc c))
 
 comb4 :: Located a -> Located b -> Located c -> Located d -> SrcSpan
 comb4 a b c d = combineSrcSpans (getLoc a) $ combineSrcSpans (getLoc b) $
-		combineSrcSpans (getLoc c) (getLoc d)
+                combineSrcSpans (getLoc c) (getLoc d)
 
 -- strict constructor version:
 {-# INLINE sL #-}
@@ -20755,3 +20780,191 @@ fileSrcSpan = do
   l <- getSrcLoc; 
   let loc = mkSrcLoc (srcLocFile l) 1 0;
   return (mkSrcSpan loc loc)
+
+infixr 9 `HappyStk`
+data HappyStk a = HappyStk a (HappyStk a)
+
+-----------------------------------------------------------------------------
+-- starting the parse
+
+happyParse start_state = happyNewToken start_state notHappyAtAll notHappyAtAll
+
+-----------------------------------------------------------------------------
+-- Accepting the parse
+
+-- If the current token is (1), it means we've just accepted a partial
+-- parse (a %partial parser).  We must ignore the saved token on the top of
+-- the stack in this case.
+happyAccept (1) tk st sts (_ `HappyStk` ans `HappyStk` _) =
+        happyReturn1 ans
+happyAccept j tk st sts (HappyStk ans _) = 
+         (happyReturn1 ans)
+
+-----------------------------------------------------------------------------
+-- Arrays only: do the next action
+
+{-# LINE 155 "templates/GenericTemplate.hs" #-}
+
+-----------------------------------------------------------------------------
+-- HappyState data type (not arrays)
+
+
+
+newtype HappyState b c = HappyState
+        (Int ->                    -- token number
+         Int ->                    -- token number (yes, again)
+         b ->                           -- token semantic value
+         HappyState b c ->              -- current state
+         [HappyState b c] ->            -- state stack
+         c)
+
+
+
+-----------------------------------------------------------------------------
+-- Shifting a token
+
+happyShift new_state (1) tk st sts stk@(x `HappyStk` _) =
+     let i = (case x of { HappyErrorToken (i) -> i }) in
+--     trace "shifting the error token" $
+     new_state i i tk (HappyState (new_state)) ((st):(sts)) (stk)
+
+happyShift new_state i tk st sts stk =
+     happyNewToken new_state ((st):(sts)) ((HappyTerminal (tk))`HappyStk`stk)
+
+-- happyReduce is specialised for the common cases.
+
+happySpecReduce_0 i fn (1) tk st sts stk
+     = happyFail (1) tk st sts stk
+happySpecReduce_0 nt fn j tk st@((HappyState (action))) sts stk
+     = action nt j tk st ((st):(sts)) (fn `HappyStk` stk)
+
+happySpecReduce_1 i fn (1) tk st sts stk
+     = happyFail (1) tk st sts stk
+happySpecReduce_1 nt fn j tk _ sts@(((st@(HappyState (action))):(_))) (v1`HappyStk`stk')
+     = let r = fn v1 in
+       happySeq r (action nt j tk st sts (r `HappyStk` stk'))
+
+happySpecReduce_2 i fn (1) tk st sts stk
+     = happyFail (1) tk st sts stk
+happySpecReduce_2 nt fn j tk _ ((_):(sts@(((st@(HappyState (action))):(_))))) (v1`HappyStk`v2`HappyStk`stk')
+     = let r = fn v1 v2 in
+       happySeq r (action nt j tk st sts (r `HappyStk` stk'))
+
+happySpecReduce_3 i fn (1) tk st sts stk
+     = happyFail (1) tk st sts stk
+happySpecReduce_3 nt fn j tk _ ((_):(((_):(sts@(((st@(HappyState (action))):(_))))))) (v1`HappyStk`v2`HappyStk`v3`HappyStk`stk')
+     = let r = fn v1 v2 v3 in
+       happySeq r (action nt j tk st sts (r `HappyStk` stk'))
+
+happyReduce k i fn (1) tk st sts stk
+     = happyFail (1) tk st sts stk
+happyReduce k nt fn j tk st sts stk
+     = case happyDrop (k - ((1) :: Int)) sts of
+         sts1@(((st1@(HappyState (action))):(_))) ->
+                let r = fn stk in  -- it doesn't hurt to always seq here...
+                happyDoSeq r (action nt j tk st1 sts1 r)
+
+happyMonadReduce k nt fn (1) tk st sts stk
+     = happyFail (1) tk st sts stk
+happyMonadReduce k nt fn j tk st sts stk =
+      case happyDrop k ((st):(sts)) of
+        sts1@(((st1@(HappyState (action))):(_))) ->
+          let drop_stk = happyDropStk k stk in
+          happyThen1 (fn stk tk) (\r -> action nt j tk st1 sts1 (r `HappyStk` drop_stk))
+
+happyMonad2Reduce k nt fn (1) tk st sts stk
+     = happyFail (1) tk st sts stk
+happyMonad2Reduce k nt fn j tk st sts stk =
+      case happyDrop k ((st):(sts)) of
+        sts1@(((st1@(HappyState (action))):(_))) ->
+         let drop_stk = happyDropStk k stk
+
+
+
+
+
+             new_state = action
+
+          in
+          happyThen1 (fn stk tk) (\r -> happyNewToken new_state sts1 (r `HappyStk` drop_stk))
+
+happyDrop (0) l = l
+happyDrop n ((_):(t)) = happyDrop (n - ((1) :: Int)) t
+
+happyDropStk (0) l = l
+happyDropStk n (x `HappyStk` xs) = happyDropStk (n - ((1)::Int)) xs
+
+-----------------------------------------------------------------------------
+-- Moving to a new state after a reduction
+
+{-# LINE 256 "templates/GenericTemplate.hs" #-}
+happyGoto action j tk st = action j j tk (HappyState action)
+
+
+-----------------------------------------------------------------------------
+-- Error recovery ((1) is the error token)
+
+-- parse error if we are in recovery and we fail again
+happyFail (1) tk old_st _ stk@(x `HappyStk` _) =
+     let i = (case x of { HappyErrorToken (i) -> i }) in
+--      trace "failing" $ 
+        happyError_ i tk
+
+{-  We don't need state discarding for our restricted implementation of
+    "error".  In fact, it can cause some bogus parses, so I've disabled it
+    for now --SDM
+
+-- discard a state
+happyFail  (1) tk old_st (((HappyState (action))):(sts)) 
+                                                (saved_tok `HappyStk` _ `HappyStk` stk) =
+--      trace ("discarding state, depth " ++ show (length stk))  $
+        action (1) (1) tk (HappyState (action)) sts ((saved_tok`HappyStk`stk))
+-}
+
+-- Enter error recovery: generate an error token,
+--                       save the old token and carry on.
+happyFail  i tk (HappyState (action)) sts stk =
+--      trace "entering error recovery" $
+        action (1) (1) tk (HappyState (action)) sts ( (HappyErrorToken (i)) `HappyStk` stk)
+
+-- Internal happy errors:
+
+notHappyAtAll :: a
+notHappyAtAll = error "Internal Happy error\n"
+
+-----------------------------------------------------------------------------
+-- Hack to get the typechecker to accept our action functions
+
+
+
+
+
+
+
+-----------------------------------------------------------------------------
+-- Seq-ing.  If the --strict flag is given, then Happy emits 
+--      happySeq = happyDoSeq
+-- otherwise it emits
+--      happySeq = happyDontSeq
+
+happyDoSeq, happyDontSeq :: a -> b -> b
+happyDoSeq   a b = a `seq` b
+happyDontSeq a b = b
+
+-----------------------------------------------------------------------------
+-- Don't inline any functions from the template.  GHC has a nasty habit
+-- of deciding to inline happyGoto everywhere, which increases the size of
+-- the generated parser quite a bit.
+
+{-# LINE 322 "templates/GenericTemplate.hs" #-}
+{-# NOINLINE happyShift #-}
+{-# NOINLINE happySpecReduce_0 #-}
+{-# NOINLINE happySpecReduce_1 #-}
+{-# NOINLINE happySpecReduce_2 #-}
+{-# NOINLINE happySpecReduce_3 #-}
+{-# NOINLINE happyReduce #-}
+{-# NOINLINE happyMonadReduce #-}
+{-# NOINLINE happyGoto #-}
+{-# NOINLINE happyFail #-}
+
+-- end of Happy Template.
